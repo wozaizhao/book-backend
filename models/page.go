@@ -77,7 +77,7 @@ func GetPages(id int) []Page {
 	if err !=nil {
 		fmt.Println("数据库初始化失败")
 	}
-	errc := engine.Table("page").Cols("sn","title").Where("content_id = ?",id).Find(&pages)
+	errc := engine.Table("page").Cols("content_id","book_id","sn","title").Where("content_id = ?",id).Find(&pages)
 	if  errc != nil {
 		fmt.Println(errc)
 	}
