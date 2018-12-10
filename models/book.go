@@ -48,7 +48,7 @@ func GetBooks() []Book {
 	if err !=nil {
 		fmt.Println("数据库初始化失败")
 	}
-	errc := engine.Table("book").Cols("name","cate","cover","slogan","bg","color","tag").Find(&books);
+	errc := engine.Table("book").Cols("id","name","cate","cover","slogan","bg","color","tag").Find(&books);
 	if  errc != nil {
 		fmt.Println(errc)
 	}
