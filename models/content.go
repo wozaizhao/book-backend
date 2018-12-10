@@ -73,7 +73,7 @@ func GetContents(id int) []Content {
 	if err !=nil {
 		fmt.Println("数据库初始化失败")
 	}
-	errc := engine.Where("book_id = ?",id).Find(&contents)
+	errc := engine.Asc("sn").Where("book_id = ?",id).Find(&contents)
 	if  errc != nil {
 		fmt.Println(errc)
 	}
