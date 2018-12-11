@@ -101,3 +101,17 @@ func AddPage(c *gin.Context){
 	models.InsertPage(page.BookId,page.ContentId ,page.Sn , page.Title , page.MdUrl)
 	c.JSON(http.StatusOK,gin.H{"addpage":"ok"})
 }
+
+func GetPage(c *gin.Context) {
+	id := c.Param("id")
+	contentid := c.Param("content")
+	pageid := c.Param("page")
+	page := models.GetPage(id,contentid,pageid)
+	c.JSON(http.StatusOK,gin.H{"page":page})
+}
+
+func GetPageById(c *gin.Context){
+	id := c.Param("id")
+	page := models.GetPageById(id)
+	c.JSON(http.StatusOK,gin.H{"page":page})
+}

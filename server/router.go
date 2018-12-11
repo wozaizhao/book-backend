@@ -22,7 +22,9 @@ func SetupRouter() *gin.Engine {
 	  //书籍详情,包含目录
 	  wx.GET("book/:id",book.GetBook)
 	  //章节
-	  wx.GET("book/:id/:content/:page")
+	  wx.GET("book/:id/:content/:page",book.GetPage)
+	  //章节
+	  wx.GET("page/:id",book.GetPageById)
 
 		
 	}

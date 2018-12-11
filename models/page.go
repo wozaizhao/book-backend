@@ -84,3 +84,37 @@ func GetPages(id int) []Page {
 	return pages
 
 }
+
+func GetPageById(id string) *Page {
+	page := new(Page)
+	engine,err := GetEngine()
+	if err !=nil {
+		fmt.Println("数据库初始化失败")
+	}
+	has, errc := engine.Id(id).Get(page)
+	if  errc != nil {
+		fmt.Println(errc)
+	}
+	if has {
+		return page
+	}
+	return nil
+
+}
+
+func GetPage(bookid string,contentid string, pageid string) *Page {
+	page := new(Page)
+	engine,err := GetEngine()
+	if err !=nil {
+		fmt.Println("数据库初始化失败")
+	}
+	has, errc := engine.Where("book_id = ? AND content_id = ? AND sn = ?", bookid, contentid, pageid).Get(page)
+	if  errc != nil {
+		fmt.Println(errc)
+	}
+	if has {
+		return page
+	}
+	return nil
+
+}
