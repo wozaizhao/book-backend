@@ -18,6 +18,7 @@ type Book struct {
 	Tag string
 	Intro string
 	Path string
+	Url string
 	Created              time.Time   `xorm:"-" json:"-"`
 	CreatedUnix          int64
 	Updated              time.Time   `xorm:"-" json:"-"`
@@ -73,7 +74,7 @@ func GetBook(id int) *Book {
 
 }
 
-func InsertBook(priority int,name string,cate string, cover string,slogan string,bg string,color string,tag string,intro string,path string){
+func InsertBook(priority int,name string,cate string, cover string,slogan string,bg string,color string,tag string,intro string,path string,url string){
 	b := new(Book)
 	b.Priority = priority
 	b.Name = name
@@ -85,6 +86,7 @@ func InsertBook(priority int,name string,cate string, cover string,slogan string
 	b.Tag = tag
 	b.Intro = intro
 	b.Path = path
+	b.Url = url
 
 	var engine *xorm.Engine
 	var err error

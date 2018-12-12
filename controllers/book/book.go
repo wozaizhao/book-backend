@@ -20,6 +20,7 @@ type Book struct {
 	Tag string    `form:"tag" json:"tag"`
 	Intro string  `form:"intro" json:"intro" binding:"required"`
 	Path string   `form:"path" json:"path" binding:"required"`
+	Url string    `form:"url" json:"url"`
 }
 
 type Content struct {
@@ -43,7 +44,7 @@ func AddBook(c *gin.Context){
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 	}
-	models.InsertBook(book.Priority,book.Name,book.Cate,book.Cover,book.Slogan,book.Bg,book.Color,book.Tag,book.Intro,book.Path)
+	models.InsertBook(book.Priority,book.Name,book.Cate,book.Cover,book.Slogan,book.Bg,book.Color,book.Tag,book.Intro,book.Path,book.Url)
 	c.JSON(http.StatusOK,gin.H{"addbook":"ok"})
 }
 
