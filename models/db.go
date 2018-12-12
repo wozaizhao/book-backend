@@ -38,6 +38,7 @@ func initDB() error {
 	if err!= nil{
 		return err
 	}
+	engine.SetMaxIdleConns(0)
 	return nil
 }
 

@@ -19,6 +19,7 @@ type Book struct {
 	Intro string
 	Path string
 	Url string
+	Status int    `xorm:"default 0"`
 	Created              time.Time   `xorm:"-" json:"-"`
 	CreatedUnix          int64
 	Updated              time.Time   `xorm:"-" json:"-"`
@@ -49,7 +50,7 @@ func GetBooks() []Book {
 	if err !=nil {
 		fmt.Println("数据库初始化失败")
 	}
-	errc := engine.Table("book").Cols("id","name","cate","cover","slogan","bg","color","tag").Find(&books);
+	errc := engine.Table("book").Where("status = ?",1).Cols("id","name","cate","cover","slogan","bg","color","tag").Find(&books);
 	if  errc != nil {
 		fmt.Println(errc)
 	}
