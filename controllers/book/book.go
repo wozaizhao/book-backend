@@ -33,9 +33,15 @@ type Content struct {
 type Page struct {
 	BookId int     `form:"bookid" json:"bookid" binding:"required"`
 	ContentId int  `form:"contentid" json:"contentid" binding:"required"`
-	Sn int         `form:"sn" json:"sn" binding:"required"`
+	// Sn int         `form:"sn" json:"sn" binding:"required"`
 	Title string   `form:"title" json:"title" binding:"required"`
 	MdUrl string   `form:"mdurl" json:"mdurl" binding:"required"`
+}
+
+type Pagination struct {
+	BookId int
+	ContentId int
+    Sn int
 }
 
 func AddBook(c *gin.Context){
@@ -99,8 +105,8 @@ func AddPage(c *gin.Context){
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 	}
-	models.InsertPage(page.BookId,page.ContentId ,page.Sn , page.Title , page.MdUrl)
-	c.JSON(http.StatusOK,gin.H{"addpage":"ok"})
+	p := models.InsertPage(page.BookId,page.ContentId, page.Title , page.MdUrl)
+	c.JSON(http.StatusOK,gin.H{"addpage":p})
 }
 
 func GetPage(c *gin.Context) {
@@ -108,11 +114,65 @@ func GetPage(c *gin.Context) {
 	contentid := c.Param("content")
 	pageid := c.Param("page")
 	page := models.GetPage(id,contentid,pageid)
-	c.JSON(http.StatusOK,gin.H{"page":page})
+	next := hasNextPage(id,contentid,pageid)
+	prev := hasPrevPage(id,contentid,pageid)
+	c.JSON(http.StatusOK,gin.H{"page":page,"next":next,"prev":prev})
 }
 
 func GetPageById(c *gin.Context){
 	id := c.Param("id")
 	page := models.GetPageById(id)
 	c.JSON(http.StatusOK,gin.H{"page":page})
+}
+
+func hasNextPage(bookid string, contentid string, sn string) * Pagination{
+	book_id, errb := strconv.Atoi(bookid)
+	content_id, errc := strconv.Atoi(contentid)
+	page_sn, errp := strconv.Atoi(sn)
+
+	if errb!=nil || errc!=nil || errp!=nil {
+		fmt.Println("somethis wrong")
+	}
+
+	page_sn = page_sn + 1
+
+	has := models.PageExist(book_id,content_id,page_sn)
+
+	if has {
+		pagination := new(Pagination)
+		pagination.BookId = book_id
+		pagination.ContentId = content_id
+		pagination.Sn = page_sn
+
+		return pagination
+	} else {
+        return nil
+	}
+   
+}
+
+func hasPrevPage(bookid string, contentid string, sn string) * Pagination{
+	book_id, errb := strconv.Atoi(bookid)
+	content_id, errc := strconv.Atoi(contentid)
+	page_sn, errp := strconv.Atoi(sn)
+
+	if errb!=nil || errc!=nil || errp!=nil {
+		fmt.Println("somethis wrong")
+	}
+
+	page_sn = page_sn - 1
+
+	has := models.PageExist(book_id,content_id,page_sn)
+
+	if has {
+		pagination := new(Pagination)
+		pagination.BookId = book_id
+		pagination.ContentId = content_id
+		pagination.Sn = page_sn
+
+		return pagination
+	} else {
+        return nil
+	}
+
 }

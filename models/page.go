@@ -37,11 +37,11 @@ func (p *Page) AfterSet(colName string, _ xorm.Cell) {
 	}
 }
 
-func InsertPage(bookid int,contentid int,sn int, title string, mdurl string){
+func InsertPage(bookid int,contentid int, title string, mdurl string) *Page{
 	p := new(Page)
 	p.BookId = bookid
 	p.ContentId= contentid
-	p.Sn = sn
+	p.Sn = GetPageSn(contentid)
 	p.Title = title
 	p.MdUrl = mdurl
 
@@ -66,8 +66,10 @@ func InsertPage(bookid int,contentid int,sn int, title string, mdurl string){
 	fmt.Println(affected)
 	if err != nil {
 		fmt.Println(err) // 如果不是如预期的那么就报错
+		return nil
 	} else {
 		fmt.Println("数据插入成功") //记录一些你期望记录的信息
+		return p
 	}
 }
 
@@ -117,4 +119,33 @@ func GetPage(bookid string,contentid string, pageid string) *Page {
 	}
 	return nil
 
+}
+
+func GetPageSn(contentid int) int{
+	var pages []Page
+	engine,err := GetEngine()
+	if err !=nil {
+		fmt.Println("数据库初始化失败")
+	}
+	errc := engine.Table("page").Desc("sn").Cols("sn").Where("content_id = ?",contentid).Find(&pages)
+	if  errc != nil {
+		fmt.Println(errc)
+	}
+	if (len(pages) == 0){
+		return 1
+	}
+	return pages[0].Sn + 1
+}
+
+func PageExist(bookid int, contentid int, pageid int) bool{
+	engine,err := GetEngine()
+	if err !=nil {
+		fmt.Println("数据库初始化失败")
+	}
+	has, errc := engine.Table("page").Where("book_id = ? AND content_id = ? AND sn = ?", bookid, contentid, pageid).Exist()
+	if  errc != nil {
+		fmt.Println(errc)
+	}
+
+	return has
 }
