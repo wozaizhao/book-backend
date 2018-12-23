@@ -34,12 +34,14 @@ func WxLogin(c *gin.Context) {
 		return
 	} else {
 		//小程序登录
+		fmt.Println(wxl)
 
 		wXBizDataCrypt, err := wechat.GetJsCode2Session(wxl.Code)
 		if err != nil {
 			fmt.Println(err)
 			c.JSON(http.StatusOK, gin.H{"code": common.FAIL, "msg": "login fail"})
 		}
+		fmt.Println(wXBizDataCrypt)
 
 		userinfo, err := wechat.WeDecryptData(wXBizDataCrypt, wxl.EncryptedData, wxl.Iv)
 		if err != nil {
@@ -47,6 +49,7 @@ func WxLogin(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"code": common.FAIL, "msg": "login fail"})
 		}
 		token := utils.Md5(wXBizDataCrypt.SessionKey)
+		fmt.Println(token)
 
 		//根据openid判断用户是否存在
 		if models.UserExist(wXBizDataCrypt.Openid) {
