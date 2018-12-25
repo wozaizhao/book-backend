@@ -1,9 +1,7 @@
 package user
 
 import (
-	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"wozaizhao.com/book/common"
@@ -34,22 +32,25 @@ func WxLogin(c *gin.Context) {
 		return
 	} else {
 		//小程序登录
-		fmt.Println(wxl)
+		common.Log("Request of wxl:", wxl)
 
 		wXBizDataCrypt, err := wechat.GetJsCode2Session(wxl.Code)
 		if err != nil {
-			fmt.Println(err)
+			common.Log("GetJsCode2Session Error:", err)
 			c.JSON(http.StatusOK, gin.H{"code": common.FAIL, "msg": "login fail"})
+			return
 		}
-		fmt.Println(wXBizDataCrypt)
+		common.Log("wXBizDataCrypt", wXBizDataCrypt)
 
 		userinfo, err := wechat.WeDecryptData(wXBizDataCrypt, wxl.EncryptedData, wxl.Iv)
 		if err != nil {
-			fmt.Println(err)
+			common.Log("WeDecryptData Error:", err)
 			c.JSON(http.StatusOK, gin.H{"code": common.FAIL, "msg": "login fail"})
+			return
 		}
+		common.Log("userinfo", userinfo)
 		token := utils.Md5(wXBizDataCrypt.SessionKey)
-		fmt.Println(token)
+		common.Log("token", token)
 
 		//根据openid判断用户是否存在
 		if models.UserExist(wXBizDataCrypt.Openid) {
@@ -73,28 +74,36 @@ func Login(c *gin.Context) {
 }
 
 func SubscribeBook(c *gin.Context) {
-	bookid := c.Param("id")
+	id := c.Param("id")
+	common.Log("SubscribeBook id:", id)
 	var subscribe SubscribeReq
-	if c.ShouldBind(&subscribe) == nil {
-		fmt.Println(subscribe.Status)
+	if err := c.ShouldBind(&subscribe); err != nil {
+		common.Log("ShouldBind Error:", err)
 	}
-	bookidint, err := strconv.Atoi(bookid)
-	if err != nil {
-		fmt.Println(err)
+	common.Log("SubscribeBook status:", subscribe.Status)
+	bookid := common.String2int(id)
+	token := c.Request.Header["Token"]
+	if token == nil {
+		c.JSON(http.StatusOK, gin.H{"code": common.FAIL, "message": "token missing"})
+		return
 	}
-	token := c.Request.Header["Token"][0]
-	openid := models.Skey2OpenId(token)
+	common.Log("SubscribeBook token:", token)
+	openid := models.Skey2OpenId(token[0])
+	if openid == "" {
+		c.JSON(http.StatusOK, gin.H{"code": common.TOKENEXPIRED, "message": "token expired"})
+		return
+	}
 	subscription := new(Subscription)
-	if models.FavoriteExsit(openid, bookidint) {
-		models.UpdateFavorite(openid, bookidint, subscribe.Status)
+	if models.FavoriteExsit(openid, bookid) {
+		models.UpdateFavorite(openid, bookid, subscribe.Status)
 	} else {
-		models.InsertFavorite(openid, bookidint, subscribe.Status)
+		models.InsertFavorite(openid, bookid, subscribe.Status)
 	}
-	if subscribe.Status == 1 {
+	if subscribe.Status == common.SUBSCRIBE {
 		subscription.Self = true
 	} else {
 		subscription.Self = false
 	}
-	subscription.Count = models.Subscription(bookidint)
+	subscription.Count = models.Subscription(bookid)
 	c.JSON(http.StatusOK, gin.H{"code": common.SUCCESS, "message": "stared", "subscription": subscription})
 }

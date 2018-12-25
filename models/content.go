@@ -2,19 +2,20 @@ package models
 
 import (
 	"time"
-	"fmt"
+
 	"github.com/go-xorm/xorm"
+	"wozaizhao.com/book/common"
 )
 
 type Content struct {
-	Id int `json:"id" xorm:"pk autoincr unique"`
-	BookId int
-	Sn int
-	Title string
-	Created              time.Time   `xorm:"-" json:"-"`
-	CreatedUnix          int64
-	Updated              time.Time   `xorm:"-" json:"-"`
-	UpdatedUnix          int64
+	Id          int `json:"id" xorm:"pk autoincr unique"`
+	BookId      int
+	Sn          int
+	Title       string
+	Created     time.Time `xorm:"-" json:"-"`
+	CreatedUnix int64
+	Updated     time.Time `xorm:"-" json:"-"`
+	UpdatedUnix int64
 }
 
 func (c *Content) BeforeInsert() {
@@ -35,48 +36,48 @@ func (c *Content) AfterSet(colName string, _ xorm.Cell) {
 	}
 }
 
-func InsertContent(bookid int,sn int, title string){
-	c := new(Content)
+func InsertContent(bookid int, sn int, title string) (c *Content) {
+	c = new(Content)
 	c.BookId = bookid
 	c.Sn = sn
 	c.Title = title
 
-	var engine *xorm.Engine
-	var err error
-	engine,err = GetEngine()
+	// var engine *xorm.Engine
+	// var err error
+	// engine,err = GetEngine()
 
-	if err !=nil {
-		fmt.Println("数据库初始化失败")
-	}
+	// if err !=nil {
+	// 	fmt.Println("数据库初始化失败")
+	// }
 
 	//如果表不存在就创建表
-	var tableContent= &Content{}
+	var tableContent = &Content{}
 
 	errc := engine.CreateTables(tableContent)
 
 	if errc != nil {
-		fmt.Println(errc)
+		common.Log("InsertContent CreateTables Error:", errc)
 	}
 
 	affected, err := engine.Insert(c)
-	fmt.Println(affected)
+	// fmt.Println(affected)
 	if err != nil {
-		fmt.Println(err) // 如果不是如预期的那么就报错
+		common.Log("InsertContent Insert Error:", err)
 	} else {
-		fmt.Println("数据插入成功") //记录一些你期望记录的信息
+		common.Log("InsertContent Insert Successfully:", affected)
 	}
+	return
 }
 
-func GetContents(id int) []Content {
-	var contents []Content
-	engine,err := GetEngine()
-	if err !=nil {
-		fmt.Println("数据库初始化失败")
+func GetContents(id int) (c []Content) {
+	// engine,err := GetEngine()
+	// if err !=nil {
+	// 	fmt.Println("数据库初始化失败")
+	// }
+	errc := engine.Asc("sn").Where("book_id = ?", id).Find(&c)
+	if errc != nil {
+		common.Log("GetContents Find Error:", errc)
 	}
-	errc := engine.Asc("sn").Where("book_id = ?",id).Find(&contents)
-	if  errc != nil {
-		fmt.Println(errc)
-	}
-	return contents
+	return
 
 }

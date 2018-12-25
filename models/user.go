@@ -1,10 +1,10 @@
 package models
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/go-xorm/xorm"
+	"wozaizhao.com/book/common"
 )
 
 type User struct {
@@ -45,15 +45,14 @@ func (u *User) AfterSet(colName string, _ xorm.Cell) {
 
 //用户是否存在？
 func UserExist(openid string) bool {
-	engine, err := GetEngine()
-	if err != nil {
-		fmt.Println("数据库初始化失败")
-	}
+	// engine, err := GetEngine()
+	// if err != nil {
+	// 	fmt.Println("数据库初始化失败")
+	// }
 
 	has, err := engine.Table("user").Where("open_i_d = ?", openid).Exist()
 	if err != nil {
-		fmt.Println(err)
-		return false
+		common.Log("Exist Error:", err)
 	}
 	return has
 }
@@ -64,11 +63,10 @@ func UpdateUserToken(openid, session_key, skey string) {
 	user.SessionKey = session_key
 	user.Skey = skey
 	affected, err := engine.Where("open_i_d = ?", openid).Update(user)
-	fmt.Println(affected)
 	if err != nil {
-		fmt.Println(err) // 如果不是如预期的那么就报错
+		common.Log("Update Error:", err)
 	} else {
-		fmt.Println("数据更新成功") //记录一些你期望记录的信息
+		common.Log("UpdateUserToken Successfully", affected)
 	}
 }
 
@@ -86,11 +84,11 @@ func SaveUser(openId, nickName string, gender int, city, province, country, avat
 	u.SessionKey = session_key
 	u.Skey = skey
 
-	engine, err := GetEngine()
+	// engine, err := GetEngine()
 
-	if err != nil {
-		fmt.Println("数据库初始化失败")
-	}
+	// if err != nil {
+	// 	common.Log("GetEngine Error:", err)
+	// }
 
 	//如果表不存在就创建表
 	var tableUser = &User{}
@@ -98,31 +96,32 @@ func SaveUser(openId, nickName string, gender int, city, province, country, avat
 	errc := engine.CreateTables(tableUser)
 
 	if errc != nil {
-		fmt.Println(errc)
+		common.Log("CreateTables Error", errc)
 	}
 
 	affected, err := engine.Insert(u)
-	fmt.Println(affected)
 	if err != nil {
-		fmt.Println(err) // 如果不是如预期的那么就报错
+		common.Log("Insert Error:", err)
 	} else {
-		fmt.Println("数据插入成功") //记录一些你期望记录的信息
+		common.Log("SaveUser Successfully", affected) //记录一些你期望记录的信息
 	}
 }
 
 //根据token查找openid
-func Skey2OpenId(skey string) string {
+func Skey2OpenId(skey string) (openid string) {
 	u := new(User)
-	engine, err := GetEngine()
-	if err != nil {
-		fmt.Println("数据库初始化失败")
-	}
+	// engine, err := GetEngine()
+	// if err != nil {
+	// 	fmt.Println("数据库初始化失败")
+	// }
 	has, errc := engine.Where("skey = ?", skey).Get(u)
 	if errc != nil {
-		fmt.Println(errc)
+		common.Log("Get Error:", errc)
+		return
 	}
 	if has {
-		return u.OpenID
+		openid = u.OpenID
+		common.Log("Skey2OpenId Successfully:", openid)
 	}
-	return ""
+	return
 }

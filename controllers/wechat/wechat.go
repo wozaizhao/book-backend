@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 
@@ -67,7 +66,7 @@ type (
 func getAppid() (appid, appSecret string) {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		common.Log("getAppid Error:", err)
 	}
 
 	appid = os.Getenv("APPID")

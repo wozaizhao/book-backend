@@ -1,10 +1,10 @@
 package models
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/go-xorm/xorm"
+	"wozaizhao.com/book/common"
 )
 
 type Book struct {
@@ -45,54 +45,49 @@ func (b *Book) AfterSet(colName string, _ xorm.Cell) {
 	}
 }
 
-func GetBooks() []Book {
-	var books []Book
-	engine, err := GetEngine()
-	if err != nil {
-		fmt.Println("数据库初始化失败")
-	}
+func GetBooks() (books []Book) {
+	// engine, err := GetEngine()
+	// if err != nil {
+	// 	fmt.Println("数据库初始化失败")
+	// }
 	errc := engine.Table("book").Where("status = ?", 1).Cols("id", "name", "cate", "cover", "slogan", "bg", "color", "tag").Desc("priority").Find(&books)
 	if errc != nil {
-		fmt.Println(errc)
+		common.Log("GetBooks Find Error:", errc)
 	}
-	return books
+	return
 
 }
 
-func GetSelfBooks(openid string) []Book {
-	var books []Book
-	engine, err := GetEngine()
-	if err != nil {
-		fmt.Println("数据库初始化失败")
-	}
+func GetSelfBooks(openid string) (books []Book) {
+	// engine, err := GetEngine()
+	// if err != nil {
+	// 	fmt.Println("数据库初始化失败")
+	// }
 	sql := `select * from book, favorite where book.id  = favorite.book_id and favorite.status = 1 and favorite.open_i_d = "` + openid + `"`
 	errc := engine.Sql(sql).Find(&books)
 	if errc != nil {
-		fmt.Println(errc)
+		common.Log("GetSelfBooks Find Error:", errc)
 	}
-	return books
+	return
 
 }
 
-func GetBook(id int) *Book {
-	book := new(Book)
-	engine, err := GetEngine()
-	if err != nil {
-		fmt.Println("数据库初始化失败")
-	}
-	has, errc := engine.Id(id).Get(book)
+func GetBook(id int) (b *Book) {
+	b = new(Book)
+	// engine, err := GetEngine()
+	// if err != nil {
+	// 	fmt.Println("数据库初始化失败")
+	// }
+	has, errc := engine.Id(id).Get(b)
 	if errc != nil {
-		fmt.Println(errc)
+		common.Log("GetBook Get Error:", errc)
 	}
-	if has {
-		return book
-	}
-	return nil
-
+	common.Log("GetBook Get:", has)
+	return
 }
 
-func InsertBook(priority int, name string, cate string, cover string, slogan string, bg string, color string, tag string, intro string, path string, url string) {
-	b := new(Book)
+func InsertBook(priority int, name string, cate string, cover string, slogan string, bg string, color string, tag string, intro string, path string, url string) (b *Book) {
+	b = new(Book)
 	b.Priority = priority
 	b.Name = name
 	b.Cate = cate
@@ -105,13 +100,13 @@ func InsertBook(priority int, name string, cate string, cover string, slogan str
 	b.Path = path
 	b.Url = url
 
-	var engine *xorm.Engine
-	var err error
-	engine, err = GetEngine()
+	// var engine *xorm.Engine
+	// var err error
+	// engine, err = GetEngine()
 
-	if err != nil {
-		fmt.Println("数据库初始化失败")
-	}
+	// if err != nil {
+	// 	fmt.Println("数据库初始化失败")
+	// }
 
 	//如果表不存在就创建表
 	var tableBook = &Book{}
@@ -119,14 +114,14 @@ func InsertBook(priority int, name string, cate string, cover string, slogan str
 	errc := engine.CreateTables(tableBook)
 
 	if errc != nil {
-		fmt.Println(errc)
+		common.Log("InsertBook CreateTables Error:", errc)
 	}
 
 	affected, err := engine.Insert(b)
-	fmt.Println(affected)
 	if err != nil {
-		fmt.Println(err) // 如果不是如预期的那么就报错
+		common.Log("InsertBook Insert Error:", err)
 	} else {
-		fmt.Println("数据插入成功") //记录一些你期望记录的信息
+		common.Log("InsertBook Insert Successfully:", affected)
 	}
+	return
 }

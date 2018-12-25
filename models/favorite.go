@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/go-xorm/xorm"
@@ -43,11 +42,11 @@ func InsertFavorite(openid string, bookid int, status int) {
 	f.OpenID = openid
 	f.Status = status
 
-	engine, err := GetEngine()
+	// engine, err := GetEngine()
 
-	if err != nil {
-		fmt.Println("数据库初始化失败")
-	}
+	// if err != nil {
+	// 	fmt.Println("数据库初始化失败")
+	// }
 
 	//如果表不存在就创建表
 	var tableFavorite = &Favorite{}
@@ -55,28 +54,25 @@ func InsertFavorite(openid string, bookid int, status int) {
 	errc := engine.CreateTables(tableFavorite)
 
 	if errc != nil {
-		fmt.Println(errc)
+		common.Log("CreateTables Error:", errc)
 	}
-
 	affected, err := engine.Insert(f)
-	fmt.Println(affected)
 	if err != nil {
-		fmt.Println(err) // 如果不是如预期的那么就报错
+		common.Log("InsertFavorite Insert Error:", err)
 	} else {
-		fmt.Println("数据插入成功") //记录一些你期望记录的信息
+		common.Log("Insert Successfully:", affected)
 	}
 }
 
 func FavoriteExsit(openid string, bookid int) bool {
-	engine, err := GetEngine()
-	if err != nil {
-		fmt.Println("数据库初始化失败")
-	}
+	// engine, err := GetEngine()
+	// if err != nil {
+	// 	fmt.Println("数据库初始化失败")
+	// }
 
 	has, err := engine.Table("favorite").Where("open_i_d = ? and book_id = ?", openid, bookid).Exist()
 	if err != nil {
-		fmt.Println(err)
-		return false
+		common.Log("FavoriteExsit Exist Error:", err)
 	}
 	return has
 }
@@ -88,26 +84,25 @@ func UpdateFavorite(openid string, bookid, status int) {
 	f.Status = status
 	// fmt.Println(f)
 	affected, err := engine.Where("open_i_d = ? and book_id = ?", openid, bookid).Update(f)
-	fmt.Println(affected)
 	if err != nil {
-		fmt.Println(err) // 如果不是如预期的那么就报错
+		common.Log("UpdateFavorite Update Error:", err)
 	} else {
-		fmt.Println("数据更新成功") //记录一些你期望记录的信息
+		common.Log("Update Successfully:", affected)
 	}
 }
 
 //用户是否已订阅本书
 func HasUserSubscribe(openid string, bookid int) bool {
-	engine, err := GetEngine()
-	if err != nil {
-		fmt.Println("数据库初始化失败")
-	}
+	// engine, err := GetEngine()
+	// if err != nil {
+	// 	fmt.Println("数据库初始化失败")
+	// }
 
 	has, err := engine.Table("favorite").Where("open_i_d = ? and book_id = ? and status = ?", openid, bookid, common.SUBSCRIBED).Exist()
 	if err != nil {
-		fmt.Println(err)
-		return false
+		common.Log("HasUserSubscribe Exist Error:", err)
 	}
+	common.Log("HasUserSubscribe:", has)
 	return has
 }
 
@@ -116,7 +111,7 @@ func Subscription(bookid int) int64 {
 	f := new(Favorite)
 	total, err := engine.Where("book_id = ? and status = ?", bookid, common.SUBSCRIBED).Count(f)
 	if err != nil {
-		fmt.Println(err)
+		common.Log("Subscription Count Error:", err)
 	}
 	return total
 }

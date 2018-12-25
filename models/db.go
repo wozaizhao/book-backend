@@ -1,13 +1,13 @@
 package models
 
 import (
-	"fmt"
 	"log"
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/go-xorm/xorm"
 	"github.com/joho/godotenv"
+	"wozaizhao.com/book/common"
 )
 
 var engine *xorm.Engine
@@ -31,26 +31,25 @@ func getDataSource() string {
 }
 
 //初始化数据库引擎
-func initDB() error {
+func DBinit() {
 	var ds = getDataSource()
-	fmt.Println(ds)
+	common.Log("DataSource", ds)
 	var err error
 	engine, err = xorm.NewEngine("mysql", ds)
 	if err != nil {
-		return err
+		common.Log("NewEngine Error", err)
 	}
 	engine.SetMaxIdleConns(0)
 	// engine.ShowSQL(true)
-	return nil
 }
 
 //获取数据库引擎
-func GetEngine() (*xorm.Engine, error) {
-	if engine == nil {
-		err := initDB()
-		if err != nil {
-			return nil, err
-		}
-	}
-	return engine, nil
-}
+// func GetEngine() (*xorm.Engine, error) {
+// 	if engine == nil {
+// 		err := initDB()
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 	}
+// 	return engine, nil
+// }

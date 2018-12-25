@@ -3,9 +3,9 @@ package book
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"wozaizhao.com/book/common"
 	"wozaizhao.com/book/models"
 )
 
@@ -64,93 +64,99 @@ type Subscription struct {
 func AddBook(c *gin.Context) {
 	var book Book
 	if err := c.ShouldBindJSON(&book); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		common.Log("AddBook ShouldBindJSON Error:", err)
+		c.JSON(http.StatusBadRequest, gin.H{"code": common.FAIL, "message": "AddBook BadRequest"})
 		return
 	}
-	models.InsertBook(book.Priority, book.Name, book.Cate, book.Cover, book.Slogan, book.Bg, book.Color, book.Tag, book.Intro, book.Path, book.Url)
-	c.JSON(http.StatusOK, gin.H{"addbook": "ok"})
+	b := models.InsertBook(book.Priority, book.Name, book.Cate, book.Cover, book.Slogan, book.Bg, book.Color, book.Tag, book.Intro, book.Path, book.Url)
+	c.JSON(http.StatusOK, gin.H{"code": common.SUCCESS, "message": "AddBook Successfully", "book": b})
 }
 
 func ListBooks(c *gin.Context) {
 	token := c.Request.Header["Token"]
 	var selfbooks []models.Book
+
+	var books = models.GetBooks()
+	// fmt.Println(books)
 	if token != nil {
 		openid := models.Skey2OpenId(token[0])
-		fmt.Println(openid)
+		fmt.Println(openid == "")
+		if openid == "" {
+			c.JSON(http.StatusOK, gin.H{"books": books, "selfbooks": nil})
+			return
+		}
+		// fmt.Println(openid)
 		//用户是否已订阅本书
 		selfbooks = models.GetSelfBooks(openid)
-		fmt.Println(selfbooks)
+		// fmt.Println(selfbooks)
 	}
-	var books = models.GetBooks()
-	fmt.Println(books)
-	if books != nil {
-		c.JSON(http.StatusOK, gin.H{"books": books, "selfbooks": selfbooks})
-	} else {
-		c.JSON(http.StatusOK, gin.H{"books": nil})
-	}
+	// fmt.Println(books)
+	c.JSON(http.StatusOK, gin.H{"books": books, "selfbooks": selfbooks})
+
 }
 
 func GetBook(c *gin.Context) {
 	id := c.Param("id")
-	idint, err := strconv.Atoi(id)
-	if err != nil {
-		fmt.Println(err)
-	}
+	bookid := common.String2int(id)
+
 	subscription := new(Subscription)
 
 	token := c.Request.Header["Token"]
+	common.Log("token", token)
 	if token != nil {
 		openid := models.Skey2OpenId(token[0])
 		//用户是否已订阅本书
-		subscription.Self = models.HasUserSubscribe(openid, idint)
+		if openid == "" {
+			subscription.Self = false
+		} else {
+			subscription.Self = models.HasUserSubscribe(openid, bookid)
+		}
 	}
 
 	//本书总订阅人数
-	subscription.Count = models.Subscription(idint)
-
-	book := models.GetBook(idint)
-	contents := models.GetContents(idint)
+	subscription.Count = models.Subscription(bookid)
+	common.Log("GetBook subscription:", subscription)
+	book := models.GetBook(bookid)
+	contents := models.GetContents(bookid)
 	theContents := make([]Content, len(contents))
 	for i := 0; i < len(contents); i++ {
 		theContents[i].BookId = contents[i].BookId
 		theContents[i].Sn = contents[i].Sn
 		theContents[i].Title = contents[i].Title
-		pages := models.GetPages(contents[i].Id)
+		theContents[i].Pages = models.GetPages(contents[i].Id)
 		// fmt.Println(pages)
-		theContents[i].Pages = pages
+		// theContents[i].Pages = pages
 	}
-
-	if book != nil {
-		c.JSON(http.StatusOK, gin.H{"book": book, "content": theContents, "subscription": subscription})
-	} else {
-		c.JSON(http.StatusOK, gin.H{"book": nil})
-	}
+	c.JSON(http.StatusOK, gin.H{"book": book, "content": theContents, "subscription": subscription})
 }
 
 func AddContent(c *gin.Context) {
 	var content Content
 	if err := c.ShouldBindJSON(&content); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		common.Log("AddContent ShouldBindJSON Error:", err)
+		c.JSON(http.StatusBadRequest, gin.H{"code": common.FAIL, "message": "AddContent BadRequest"})
 		return
 	}
-	models.InsertContent(content.BookId, content.Sn, content.Title)
-	c.JSON(http.StatusOK, gin.H{"addcontent": "ok"})
+	ct := models.InsertContent(content.BookId, content.Sn, content.Title)
+	c.JSON(http.StatusOK, gin.H{"code": common.SUCCESS, "message": "AddContent Successfully", "content": ct})
 }
 
 func AddPage(c *gin.Context) {
 	var page Page
 	if err := c.ShouldBindJSON(&page); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		common.Log("AddPage ShouldBindJSON Error:", err)
+		c.JSON(http.StatusBadRequest, gin.H{"code": common.FAIL, "message": "AddPage BadRequest"})
 		return
 	}
 	p := models.InsertPage(page.BookId, page.ContentId, page.Title, page.MdUrl)
-	c.JSON(http.StatusOK, gin.H{"addpage": p})
+	c.JSON(http.StatusOK, gin.H{"code": common.SUCCESS, "message": "AddPage Successfully", "page": p})
 }
 
 func AddPages(c *gin.Context) {
 	var pages Pages
 	if err := c.ShouldBindJSON(&pages); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		common.Log("AddPages ShouldBindJSON Error:", err)
+		c.JSON(http.StatusBadRequest, gin.H{"code": common.FAIL, "message": "AddPages BadRequest"})
 		return
 	}
 	bookid := pages.BookId
@@ -161,7 +167,7 @@ func AddPages(c *gin.Context) {
 		// fmt.Println(bookid,contentid, pagearray[i].Title , path + pagearray[i].MdUrl)
 		models.InsertPage(bookid, contentid, pagearray[i].Title, path+pagearray[i].MdUrl)
 	}
-	c.JSON(http.StatusOK, gin.H{"addpages": len(pagearray)})
+	c.JSON(http.StatusOK, gin.H{"code": common.SUCCESS, "message": "AddPages Successfully", "count": len(pagearray)})
 }
 
 func GetPage(c *gin.Context) {
@@ -180,56 +186,46 @@ func GetPageById(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"page": page})
 }
 
-func hasNextPage(bookid string, contentid string, sn string) *Pagination {
-	book_id, errb := strconv.Atoi(bookid)
-	content_id, errc := strconv.Atoi(contentid)
-	page_sn, errp := strconv.Atoi(sn)
+func hasNextPage(bookid string, contentid string, sn string) (p *Pagination) {
+	book_id := common.String2int(bookid)
+	content_id := common.String2int(contentid)
+	page_sn := common.String2int(sn)
 
-	if errb != nil || errc != nil || errp != nil {
-		fmt.Println("somethis wrong")
-	}
+	// if errb != nil || errc != nil || errp != nil {
+	// 	fmt.Println("somethis wrong")
+	// }
 
 	page_sn = page_sn + 1
 
 	has := models.PageExist(book_id, content_id, page_sn)
 
 	if has {
-		pagination := new(Pagination)
-		pagination.BookId = book_id
-		pagination.ContentId = content_id
-		pagination.Sn = page_sn
-
-		return pagination
-	} else {
-		return nil
+		p = new(Pagination)
+		p.BookId = book_id
+		p.ContentId = content_id
+		p.Sn = page_sn
 	}
+	return
 
 }
 
-func hasPrevPage(bookid string, contentid string, sn string) *Pagination {
-	book_id, errb := strconv.Atoi(bookid)
-	content_id, errc := strconv.Atoi(contentid)
-	page_sn, errp := strconv.Atoi(sn)
-
-	if errb != nil || errc != nil || errp != nil {
-		fmt.Println("somethis wrong")
-	}
+func hasPrevPage(bookid string, contentid string, sn string) (p *Pagination) {
+	book_id := common.String2int(bookid)
+	content_id := common.String2int(contentid)
+	page_sn := common.String2int(sn)
 
 	page_sn = page_sn - 1
 
 	has := models.PageExist(book_id, content_id, page_sn)
 
 	if has {
-		pagination := new(Pagination)
-		pagination.BookId = book_id
-		pagination.ContentId = content_id
-		pagination.Sn = page_sn
+		p = new(Pagination)
+		p.BookId = book_id
+		p.ContentId = content_id
+		p.Sn = page_sn
 
-		return pagination
-	} else {
-		return nil
 	}
-
+	return
 }
 
 func Search(c *gin.Context) {
