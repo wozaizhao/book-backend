@@ -12,8 +12,10 @@ func SetupRouter() *gin.Engine {
 	//小程序端接口
 	wx := r.Group("/wx")
 	{
-		//wx登录
-		wx.POST("/login", user.WxLogin)
+		//wx登录，code换token
+		wx.POST("login", user.WxLogin)
+		//推送用户信息,后端保存
+		wx.POST("userinfo", user.SaveUserInfo)
 		//书籍列表,如果有token，返回我的收藏，没有返回所有书籍
 		wx.GET("book", book.ListBooks)
 
@@ -27,6 +29,10 @@ func SetupRouter() *gin.Engine {
 		wx.GET("search", book.Search)
 		//收藏书 需要token
 		wx.POST("star/:id", user.SubscribeBook)
+		//统计信息
+		wx.GET("statistics", book.GetStatistics)
+		//判断token是否过期
+		wx.GET("checktoken", user.CheckToken)
 
 	}
 

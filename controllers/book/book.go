@@ -61,6 +61,13 @@ type Subscription struct {
 	Count int64
 }
 
+type Statistics struct {
+	BookCount   int64
+	PageCount   int64
+	ReadCount   int64
+	MyReadCount int64
+}
+
 func AddBook(c *gin.Context) {
 	var book Book
 	if err := c.ShouldBindJSON(&book); err != nil {
@@ -128,6 +135,8 @@ func GetBook(c *gin.Context) {
 		// theContents[i].Pages = pages
 	}
 	c.JSON(http.StatusOK, gin.H{"book": book, "content": theContents, "subscription": subscription})
+	//读者打开书本，书本阅读数+1
+	models.ReadBookRecord(bookid)
 }
 
 func AddContent(c *gin.Context) {
@@ -174,10 +183,22 @@ func GetPage(c *gin.Context) {
 	id := c.Param("id")
 	contentid := c.Param("content")
 	pageid := c.Param("page")
+	token := c.Request.Header["Token"]
+
 	page := models.GetPage(id, contentid, pageid)
 	next := hasNextPage(id, contentid, pageid)
 	prev := hasPrevPage(id, contentid, pageid)
 	c.JSON(http.StatusOK, gin.H{"page": page, "next": next, "prev": prev})
+	//读者看一页,页面阅读数+1,记录阅读行为
+	common.Log("token", token)
+	if token != nil {
+		openid := models.Skey2OpenId(token[0])
+		if openid == "" {
+			common.Log("openid null", "can't find by token")
+		} else {
+			models.ReadPageRecord(openid, pageid)
+		}
+	}
 }
 
 func GetPageById(c *gin.Context) {
@@ -230,4 +251,24 @@ func hasPrevPage(bookid string, contentid string, sn string) (p *Pagination) {
 
 func Search(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"search": "result"})
+}
+
+func GetStatistics(c *gin.Context) {
+	//前端读书已收录书本多少本，页面多少页，总有多少次阅读，我有多少次阅读
+
+	s := new(Statistics)
+	token := c.Request.Header["Token"]
+	common.Log("token", token)
+	if token != nil {
+		openid := models.Skey2OpenId(token[0])
+		if openid == "" {
+			common.Log("openid null", "can't find by token")
+		} else {
+			s.MyReadCount = models.MyRead(openid)
+		}
+	}
+	s.BookCount = models.GetBookCount()
+	s.PageCount = models.GetPageCount()
+	s.ReadCount = models.AllRead()
+	c.JSON(http.StatusOK, gin.H{"statistics": s})
 }

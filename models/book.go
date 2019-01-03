@@ -20,6 +20,7 @@ type Book struct {
 	Intro       string
 	Path        string
 	Url         string
+	Count       int
 	Status      int       `xorm:"default 0"`
 	Created     time.Time `xorm:"-" json:"-"`
 	CreatedUnix int64
@@ -124,4 +125,31 @@ func InsertBook(priority int, name string, cate string, cover string, slogan str
 		common.Log("InsertBook Insert Successfully:", affected)
 	}
 	return
+}
+
+func ReadBookRecord(bookid int) {
+	b := new(Book)
+	has, errc := engine.Where("id = ?", bookid).Get(b)
+	if has {
+		b.Count = b.Count + 1
+		affected, err := engine.Where("id = ?", bookid).Update(b)
+		if err != nil {
+			common.Log("ReadBookRecord Update Error:", err)
+		} else {
+			common.Log("Update Successfully:", affected)
+		}
+	}
+	if errc != nil {
+		common.Log("ReadBookRecord Get Error:", errc)
+	}
+
+}
+
+func GetBookCount() int64 {
+	b := new(Book)
+	total, err := engine.Count(b)
+	if err != nil {
+		common.Log("GetBookCount Count Error:", err)
+	}
+	return total
 }

@@ -70,26 +70,11 @@ func UpdateUserToken(openid, session_key, skey string) {
 	}
 }
 
-//保存用户信息
-func SaveUser(openId, nickName string, gender int, city, province, country, avatarUrl, unionId, session_key, skey string) {
+func CreateUser(open_id, session_key, token string) {
 	u := new(User)
-	u.OpenID = openId
-	u.NickName = nickName
-	u.Gender = gender //性别，0-未知，1-男，2-女
-	u.City = city
-	u.Province = province
-	u.Country = country
-	u.AvatarURL = avatarUrl
-	u.UnionID = unionId
+	u.OpenID = open_id
 	u.SessionKey = session_key
-	u.Skey = skey
-
-	// engine, err := GetEngine()
-
-	// if err != nil {
-	// 	common.Log("GetEngine Error:", err)
-	// }
-
+	u.Skey = token
 	//如果表不存在就创建表
 	var tableUser = &User{}
 
@@ -100,6 +85,25 @@ func SaveUser(openId, nickName string, gender int, city, province, country, avat
 	}
 
 	affected, err := engine.Insert(u)
+	if err != nil {
+		common.Log("Insert Error:", err)
+	} else {
+		common.Log("CreateUser Successfully", affected) //记录一些你期望记录的信息
+	}
+}
+
+//保存用户信息
+func SaveUser(openId, nickName string, gender int, city, province, country, avatarUrl, unionId string) {
+	u := new(User)
+	u.NickName = nickName
+	u.Gender = gender //性别，0-未知，1-男，2-女
+	u.City = city
+	u.Province = province
+	u.Country = country
+	u.AvatarURL = avatarUrl
+	u.UnionID = unionId
+
+	affected, err := engine.Where("open_i_d = ?", openId).Update(u)
 	if err != nil {
 		common.Log("Insert Error:", err)
 	} else {
@@ -121,7 +125,26 @@ func Skey2OpenId(skey string) (openid string) {
 	}
 	if has {
 		openid = u.OpenID
-		common.Log("Skey2OpenId Successfully:", openid)
+		// common.Log("Skey2OpenId Successfully:", openid)
+	}
+	return
+}
+
+//根据token查找sessionkey
+func Skey2SessionKey(skey string) (session_key string) {
+	u := new(User)
+	// engine, err := GetEngine()
+	// if err != nil {
+	// 	fmt.Println("数据库初始化失败")
+	// }
+	has, errc := engine.Where("skey = ?", skey).Get(u)
+	if errc != nil {
+		common.Log("Get Error:", errc)
+		return
+	}
+	if has {
+		session_key = u.SessionKey
+		// common.Log("Skey2OpenId Successfully:", openid)
 	}
 	return
 }

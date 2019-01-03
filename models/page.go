@@ -15,6 +15,7 @@ type Page struct {
 	Sn          int
 	Title       string
 	MdUrl       string
+	Count       int
 	Created     time.Time `xorm:"-" json:"-"`
 	CreatedUnix int64
 	Updated     time.Time `xorm:"-" json:"-"`
@@ -146,4 +147,32 @@ func PageExist(bookid int, contentid int, pageid int) bool {
 		common.Log("PageExist Exist Error:", errc)
 	}
 	return has
+}
+
+func ReadPageRecord(openid, pageid string) {
+	p := new(Page)
+	has, errc := engine.Where("id = ?", pageid).Get(p)
+	if has {
+		p.Count = p.Count + 1
+		affected, err := engine.Where("id = ?", pageid).Update(p)
+		if err != nil {
+			common.Log("ReadPageRecord Update Error:", err)
+		} else {
+			common.Log("Update Successfully:", affected)
+		}
+	}
+	if errc != nil {
+		common.Log("ReadPageRecord Get Error:", errc)
+	}
+	page_id := common.String2int(pageid)
+	Recording(openid, page_id)
+}
+
+func GetPageCount() int64 {
+	p := new(Page)
+	total, err := engine.Count(p)
+	if err != nil {
+		common.Log("GetBookCount Count Error:", err)
+	}
+	return total
 }

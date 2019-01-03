@@ -11,7 +11,10 @@ import (
 )
 
 type WxLoginRequest struct {
-	Code          string `json:"code" form:"code" binding:"required"`
+	Code string `json:"code" form:"code" binding:"required"`
+}
+
+type WxUserInfo struct {
 	EncryptedData string `json:"encrypted_data" form:"encrypted_data" binding:"required"`
 	Iv            string `json:"iv" form:"iv" binding:"required"`
 }
@@ -42,13 +45,6 @@ func WxLogin(c *gin.Context) {
 		}
 		common.Log("wXBizDataCrypt", wXBizDataCrypt)
 
-		userinfo, err := wechat.WeDecryptData(wXBizDataCrypt, wxl.EncryptedData, wxl.Iv)
-		if err != nil {
-			common.Log("WeDecryptData Error:", err)
-			c.JSON(http.StatusOK, gin.H{"code": common.FAIL, "msg": "login fail"})
-			return
-		}
-		common.Log("userinfo", userinfo)
 		token := utils.Md5(wXBizDataCrypt.SessionKey)
 		common.Log("token", token)
 
@@ -56,15 +52,47 @@ func WxLogin(c *gin.Context) {
 		if models.UserExist(wXBizDataCrypt.Openid) {
 			//存在则更新token
 			models.UpdateUserToken(wXBizDataCrypt.Openid, wXBizDataCrypt.SessionKey, token)
-			c.JSON(http.StatusOK, gin.H{"code": common.SUCCESS, "msg": "relogin successfully!", "token": token, "userinfo": userinfo})
+			c.JSON(http.StatusOK, gin.H{"code": common.SUCCESS, "msg": "relogin successfully!", "token": token})
 			return
 
 		} else {
 			//不存在则保存用户信息
-			models.SaveUser(userinfo.OpenID, userinfo.NickName, userinfo.Gender, userinfo.City, userinfo.Province, userinfo.Country, userinfo.AvatarURL, userinfo.UnionID, wXBizDataCrypt.SessionKey, token)
-			c.JSON(http.StatusOK, gin.H{"code": common.SUCCESS, "msg": "login successfully!", "token": token, "userinfo": userinfo})
+			models.CreateUser(wXBizDataCrypt.Openid, wXBizDataCrypt.SessionKey, token)
+			c.JSON(http.StatusOK, gin.H{"code": common.SUCCESS, "msg": "login successfully!", "token": token})
 			return
 		}
+
+	}
+}
+
+func SaveUserInfo(c *gin.Context) {
+	var wxu WxUserInfo
+	if err := c.Bind(&wxu); err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": true, "message": err.Error()})
+		return
+	} else {
+		common.Log("Request of wxu:", wxu)
+		//根据token得到sessionkey
+		token := c.Request.Header["Token"]
+		if token == nil {
+			c.JSON(http.StatusOK, gin.H{"code": common.FAIL, "message": "token missing"})
+			return
+		}
+		common.Log("SaveUserInfo token:", token)
+		sessionKey := models.Skey2SessionKey(token[0])
+
+		userinfo, err := wechat.WeDecryptData(sessionKey, wxu.EncryptedData, wxu.Iv)
+		if err != nil {
+			common.Log("WeDecryptData Error:", err)
+			c.JSON(http.StatusOK, gin.H{"code": common.FAIL, "msg": "login fail"})
+			return
+		}
+		common.Log("userinfo", userinfo)
+
+		//不存在则保存用户信息
+		models.SaveUser(userinfo.OpenID, userinfo.NickName, userinfo.Gender, userinfo.City, userinfo.Province, userinfo.Country, userinfo.AvatarURL, userinfo.UnionID)
+		c.JSON(http.StatusOK, gin.H{"code": common.SUCCESS, "msg": "saveuserinfo successfully!", "userinfo": userinfo})
+		return
 
 	}
 }
@@ -106,4 +134,21 @@ func SubscribeBook(c *gin.Context) {
 	}
 	subscription.Count = models.Subscription(bookid)
 	c.JSON(http.StatusOK, gin.H{"code": common.SUCCESS, "message": "stared", "subscription": subscription})
+}
+
+//判断token是否过期
+func CheckToken(c *gin.Context) {
+	token := c.Request.Header["Token"]
+	common.Log("token", token)
+	var alive bool
+	if token != nil {
+		openid := models.Skey2OpenId(token[0])
+		//用户是否已订阅本书
+		if openid == "" {
+			alive = false
+		} else {
+			alive = true
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"code": common.SUCCESS, "tokenalive": alive})
 }

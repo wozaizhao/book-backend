@@ -122,13 +122,13 @@ func GetJsCode2Session(code string) (wXBizDataCrypt *WXBizDataCrypt, err error) 
 }
 
 // WeDecryptData 微信小程序登录数据解密
-func WeDecryptData(wXBizDataCrypt *WXBizDataCrypt, encryptedData, iv string) (wechatEncryptedData *WechatEncryptedData, err error) {
+func WeDecryptData(sessionKey, encryptedData, iv string) (wechatEncryptedData *WechatEncryptedData, err error) {
 
-	if len(wXBizDataCrypt.SessionKey) != 24 {
+	if len(sessionKey) != 24 {
 		return wechatEncryptedData, errors.New("encodingAesKey illegal")
 	}
 
-	aesKey, err := base64.StdEncoding.DecodeString(wXBizDataCrypt.SessionKey)
+	aesKey, err := base64.StdEncoding.DecodeString(sessionKey)
 	if err != nil {
 		return wechatEncryptedData, err
 	}
